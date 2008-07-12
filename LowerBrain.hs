@@ -1,4 +1,4 @@
-module Brain where
+module LowerBrain where
 
 import Prelude hiding (Left, Right)
 import Types

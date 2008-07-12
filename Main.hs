@@ -1,7 +1,7 @@
 module Main where
 import Types
 import Memory
-import Brain
+import LowerBrain
 import MessageParser
 import System.IO
 import Prelude hiding(Left, Right)
