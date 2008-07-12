@@ -7,11 +7,16 @@ match c p = char c >> spaces >> return p
 
 parseMessage s = fromRight $ parse message "" s
 
-message = initialization <|> telemetry <|> bounce <|> craterKill <|> martianKill
+message = initialization <|> telemetry <|> bounce <|> craterKill <|> martianKill <|> successMessage <|> endMessage
 
+-- Note: These are wrong because we don't consume all the input for each of
+-- these messages, but because we only parse what we can and throw the rest
+-- away, we never get burned.
 bounce = match 'B' T.Bounce
 craterKill = match 'C' T.CraterKill
 martianKill = match 'K' T.MartianKill
+successMessage = match 'S' T.Success
+endMessage = match 'E' T.End
 
 initialization = do
   match 'I' ()

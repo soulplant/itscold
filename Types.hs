@@ -6,6 +6,8 @@ data Message = Init Initialization
              | Bounce
              | CraterKill
              | MartianKill
+             | Success
+             | End
   deriving (Show, Eq)
 
 -- ADT For Initialization data
