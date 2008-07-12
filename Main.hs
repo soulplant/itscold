@@ -14,8 +14,8 @@ import Network.Socket
 targetPoint :: MVar Point
 targetPoint = unsafePerformIO (newMVar (0,0))
 
-main' :: MVar Memory -> (String -> IO ()) -> IO ()
-main' memoryMV puts = do
+main' :: MVar Memory -> Handle -> IO ()
+main' memoryMV h = do
   mem <- readMVar memoryMV
 
   -- Write the targetPoint MVar.
@@ -24,20 +24,20 @@ main' memoryMV puts = do
   tp <- readMVar targetPoint
 
   -- Send the command to the server.
-  sendMessage (getCommand mem tp) puts
+  hSendMessage h (getCommand mem tp)
 
   let cmd = getCommand mem tp
 
 
-  main' memoryMV puts
+  main' memoryMV h
 
 -- Starts the various threads in the system.
 startThreads :: IO ()
 startThreads = do
   memoryMV <- newEmptyMVar
-  (networkGetChar, networkPutString) <- f
-  forkIO (updateMemoryThread memoryMV networkGetChar)
-  main' memoryMV networkPutString
+  h <- getNetworkHandle
+  forkIO (updateMemoryThread memoryMV h)
+  main' memoryMV h
 
 main = do
   hSetBuffering stdout NoBuffering
@@ -46,9 +46,9 @@ main = do
 forever m = m >> forever m
 
 -- The thread that listens for network input and updates the memory.
-updateMemoryThread :: MVar Memory -> IO Char -> IO ()
-updateMemoryThread memoryMV getc = forever $ do
-  msg <- getMessage getc
+updateMemoryThread :: MVar Memory -> Handle -> IO ()
+updateMemoryThread memoryMV h = forever $ do
+  msg <- getMessage (hGetChar h)
   case msg of
     (Init initMessage) -> createOrInitializeMemory memoryMV initMessage
     (Telem telemData)  -> liftMemUpdate $ updateTelem telemData
@@ -63,7 +63,6 @@ updateMemoryThread memoryMV getc = forever $ do
         Nothing  -> putMVar mv (mkMemory init)
 
     liftMemUpdate t = do
-      putStrLn "Received a message."
       m <- takeMVar memoryMV
       putMVar memoryMV (t m)
 
@@ -78,34 +77,34 @@ getMessage' getc str = do
 
 e c = hPutStr stderr [c,';']
 -- |Send a message to the serve
-sendMessage :: VehicleControl -> (String -> IO ()) -> IO ()
-sendMessage vc puts = do
-                  sendAcc $ vcAcc vc
-                  sendDir $ vcDir vc
-                  lPuts "o;"
+hSendMessage :: Handle -> VehicleControl -> IO ()
+hSendMessage h vc = do
+                  let accStr = sendAcc $ vcAcc vc
+                  let dirStr = sendDir $ vcDir vc
+                  let sendStr = accStr ++ dirStr
+                  if (sendStr == "") then return () else lPuts (sendStr ++ ";")
   where
-    sendAcc Accelerate = lPuts "a"
-    sendAcc Brake      = lPuts "b"
-    sendAcc Roll       = return ()
+    sendAcc Accelerate = "a"
+    sendAcc Brake      = "b"
+    sendAcc Roll       = ""
 
-    sendDir HardLeft  = lPuts "l;l"
-    sendDir Left      = lPuts "l"
-    sendDir Straight  = return ()
-    sendDir Right     = lPuts "r"
-    sendDir HardRight = lPuts "r;r"
+    sendDir HardLeft  = "l;l"
+    sendDir Left      = "l"
+    sendDir Straight  = ""
+    sendDir Right     = "r"
+    sendDir HardRight = "r;r"
 
 
     lPuts str = do
-      hPutStrLn stderr ("sending: " ++ str)
-      puts str
+      -- hPutStrLn stderr ("sending: " ++ str)
+      hPutStr h str
+      hFlush h
 
-
-f :: IO Handle
-f = do
+getNetworkHandle :: IO Handle
+getNetworkHandle = do
   sock <- socket AF_INET Stream defaultProtocol
   hostAddr <- inet_addr "127.0.0.1"
   connect sock (SockAddrInet 17676 hostAddr)
-  return (networkGetChar sock, networkPutStr sock)
-  where
-    networkGetChar sock = (recv sock 1) >>= return . head
-    networkPutStr sock str = send sock str >> return ()
+  result <- socketToHandle sock ReadWriteMode
+  hSetBuffering result LineBuffering
+  return result
