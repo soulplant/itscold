@@ -1,10 +1,16 @@
 module Main where
 import Types
 import Memory
+import HigherBrain
 import LowerBrain
 import MessageParser
 import System.IO
 import Prelude hiding(Left, Right)
+import Control.Concurrent.MVar
+import System.IO.Unsafe
+
+targetPoint :: MVar Point
+targetPoint = unsafePerformIO (newMVar (0,0))
 
 main' :: Memory -> IO ()
 main' memory = do
@@ -16,12 +22,15 @@ main' memory = do
     _                  -> continue memory
   where
     continue mem = do
-      sendMessage (getCommand mem (0,0))
+      calculateTargetPoint mem targetPoint
+      tp <- readMVar targetPoint
+      sendMessage (getCommand mem tp)
       main' mem
 
 performTrial :: IO ()
 performTrial = do
   (Init initMessage) <- getMessage
+  memoryMV <- newMVar (mkMemory initMessage)
   main' (mkMemory initMessage)
 
 main = forever performTrial
