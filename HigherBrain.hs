@@ -3,5 +3,5 @@ import Memory
 import Types
 import Control.Concurrent.MVar
 
-calculateTargetPoint :: Memory -> MVar Point -> IO ()
-calculateTargetPoint mem ptMV = swapMVar ptMV (0, 0) >> return ()
+calculateTargetPoint :: Memory -> Point -> Point
+calculateTargetPoint mem pt = (0,0)

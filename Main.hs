@@ -11,33 +11,32 @@ import Control.Concurrent
 import System.IO.Unsafe
 import Network.Socket
 
-targetPoint :: MVar Point
-targetPoint = unsafePerformIO (newMVar (0,0))
-
-main' :: MVar Memory -> Handle -> IO ()
-main' memoryMV h = do
-  mem <- readMVar memoryMV
-
-  -- Write the targetPoint MVar.
-  calculateTargetPoint mem targetPoint
-
-  tp <- readMVar targetPoint
-
-  -- Send the command to the server.
-  hSendMessage h (getCommand mem tp)
-
-  let cmd = getCommand mem tp
-
-
-  main' memoryMV h
-
 -- Starts the various threads in the system.
 startThreads :: IO ()
 startThreads = do
   memoryMV <- newEmptyMVar
   h <- getNetworkHandle
   forkIO (updateMemoryThread memoryMV h)
-  main' memoryMV h
+
+  targetPointMV <- newMVar (0,0)
+  -- forkIO (callHigherBrainThread memoryMV targetPointMV)
+  forkIO (sendMessageThread h memoryMV targetPointMV)
+
+  forever (return ())
+
+callHigherBrainThread memMV targetPointMV = forever $ do
+  mem <- readMVar memMV
+  targetPoint <- readMVar targetPointMV
+  -- Write the targetPoint MVar.
+  let targetPoint' = calculateTargetPoint mem targetPoint
+  takeMVar targetPointMV
+  putMVar targetPointMV targetPoint'
+
+sendMessageThread h memMV targetPointMV = forever $ do
+  mem <- readMVar memMV
+  targetPoint <- readMVar targetPointMV
+  -- Send the command to the server.
+  hSendMessage h (getCommand mem targetPoint)
 
 main = do
   hSetBuffering stdout NoBuffering
