@@ -1,7 +1,7 @@
 module Types where
 
 -- Messages are what we get from the server
-data Message = Init  Initialization
+data Message = Init Initialization
              | Telem Telemetry
              | Bounce
              | CraterKill
@@ -24,14 +24,19 @@ data Initialization = I {
 -- ADT For Telemetry data
 data Telemetry = T {
     timeStamp :: Int,
-    vehicleCtl :: VehicleControl,
-    vehicleX :: Double,
-    vehicleY :: Double,
-    vehicleDir :: Double,
-    vehicleSpeed :: Double,
+    vehicleState :: VehicleState,
     objects :: [Object],
     martians :: [Martian]
   }
+  deriving (Show, Eq)
+
+data VehicleState = VS {
+  vehicleCtl :: VehicleControl,
+  vehicleX :: Double,
+  vehicleY :: Double,
+  vehicleDir :: Double,
+  vehicleSpeed :: Double
+}
   deriving (Show, Eq)
 
 data VehicleControl = VC {
@@ -54,10 +59,10 @@ data Object =
     objectY :: Double,
     objectR :: Double
   }
-  deriving (Show, Eq)
+  deriving (Show, Eq, Ord)
 
 data ObjectKind = Boulder | Crater | Home
-  deriving (Show, Eq)
+  deriving (Show, Eq, Ord)
 
 data Martian = Martian {
     martianX :: Double,
@@ -65,9 +70,12 @@ data Martian = Martian {
     martianDir :: Double,
     martianSpeed :: Double
   }
-  deriving (Show, Eq)
+  deriving (Show, Eq, Ord)
+
+defaultVS = VS defaultVC 0 0 0 0
 
 -- Default values
 emptyInit  = I 0 0 0 0 0 0 0 0 
-emptyTelem = T 0 emptyVC 0 0 0 0 []
-emptyVC    = VC Roll Straight
+emptyTelem = T 0 defaultVS [] []
+
+defaultVC    = VC Roll Straight

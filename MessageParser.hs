@@ -3,6 +3,8 @@ module MessageParser where
 import Text.ParserCombinators.Parsec
 import qualified Types as T
 
+match c p = char c >> spaces >> return p
+
 parseMessage s = fromRight $ parse message "" s
 
 message = initialization <|> telemetry <|> bounce <|> craterKill <|> martianKill
@@ -35,25 +37,30 @@ telemetry
   = do
       match 'T' ()
       timeStamp <- int
-      vehicleCtl <- vehicleControl
-      vehicleX <- double
-      vehicleY <- double
-      vehicleDir <- double
-      vehicleSpeed <- double
+      vehicleSt <- vehicleState
       things <- many objOrMartian
       let martians = [fromLeft x | x <- things, isLeft x]
       let objects  = [fromRight x | x <- things, isRight x]
       return $ T.Telem (T.T {
-          T.timeStamp  = timeStamp,
-          T.vehicleCtl  = vehicleCtl,
-          T.vehicleX  = vehicleX,
-          T.vehicleY  = vehicleY,
-          T.vehicleDir  = vehicleDir,
-          T.vehicleSpeed  = vehicleSpeed,
+          T.timeStamp    = timeStamp,
+          T.vehicleState = vehicleSt,
           T.objects  = objects,
           T.martians = martians})
 
+vehicleState = do
+  vehicleCtl <- vehicleControl
+  vehicleX <- double
+  vehicleY <- double
+  vehicleDir <- double
+  vehicleSpeed <- double
+  return $ T.VS {
+    T.vehicleCtl = vehicleCtl,
+    T.vehicleX = vehicleX,
+    T.vehicleY = vehicleY,
+    T.vehicleDir = vehicleDir,
+    T.vehicleSpeed = vehicleSpeed}
 
+  
 vehicleControl
   = do
       vcAcc <- acceleration
@@ -104,8 +111,6 @@ martian = do
       T.martianY = martianY,
       T.martianDir = martianDir,
       T.martianSpeed = martianSpeed}
-
-match c p = char c >> spaces >> return p
 
 double = do
           sign <- option "" (string "-")

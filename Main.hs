@@ -1,53 +1,46 @@
 module Main where
-import qualified Types as T
+import Types
+import Memory
+import Brain
+import MessageParser
 import System.IO
-import Prelude
-import Text.ParserCombinators.Parsec
+import Prelude hiding(Left, Right)
 
-main = do
+main' :: Memory -> IO ()
+main' memory = do
   hSetBuffering stdout NoBuffering
   msg <- getMessage
-  sendMessage T.emptyVC{T.vcAcc = T.Accelerate}
-  main
+  let memory' = updateMemory msg memory
+  sendMessage (getCommand memory')
+  main' memory'
   
-getMessage :: IO T.Message
+main :: IO ()
+main = do
+  let msg = emptyInit
+  main' (mkMemory msg)
+  
+getMessage :: IO Message
 getMessage = getMessage' ""
+
+getMessage' :: String -> IO Message
 getMessage' str = do
   c <- getChar
   if (c == ';') then return (parseMessage (reverse str))
                 else getMessage' (c:str)
 
-parseMessage _ = T.emptyTelem
-
-p_message = do
-              c <- anyChar
-              spaces
-              return $ case c of
-                'I' -> p_initMessage
-                'T' -> p_telemetryMessage
-
-p_initMessage = do 
-                  dx <- p_double
-                  return T.emptyInit
-
-p_telemetryMessage = do
-                      anyChar
-                      return T.emptyTelem
-
-
 -- |Send a message to the serve
-sendMessage :: T.VehicleControl -> IO ()
+sendMessage :: VehicleControl -> IO ()
 sendMessage vc = do
-                  sendAcc $ T.vcAcc vc
-                  sendDir $ T.vcDir vc
+                  sendAcc $ vcAcc vc
+                  sendDir $ vcDir vc
                   putStr ";"
   where
-    sendAcc T.Accelerate = putStr "a"
-    sendAcc T.Brake      = putStr "b"
-    sendAcc T.Roll       = return ()
+    sendAcc Accelerate = putStr "a"
+    sendAcc Brake      = putStr "b"
+    sendAcc Roll       = return ()
 
-    sendDir T.HardLeft  = putStr "l;l"
-    sendDir T.Left      = putStr "l"
-    sendDir T.Straight  = return ()
-    sendDir T.Right     = putStr "r"
-    sendDir T.HardRight = putStr "r;r"
+    sendDir HardLeft  = putStr "l;l"
+    sendDir Left      = putStr "l"
+    sendDir Straight  = return ()
+    sendDir Right     = putStr "r"
+    sendDir HardRight = putStr "r;r"
