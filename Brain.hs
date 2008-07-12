@@ -5,7 +5,7 @@ import Types
 import Memory
 import Debug.Trace
 
-turnThresh  = 0
+turnThresh  = 5
 accelThresh = 10
 
 getCommand :: Memory -> VehicleControl

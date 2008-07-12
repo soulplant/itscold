@@ -10,14 +10,23 @@ main' :: Memory -> IO ()
 main' memory = do
   hSetBuffering stdout NoBuffering
   msg <- getMessage
-  let memory' = updateMemory msg memory
-  sendMessage (getCommand memory')
-  main' memory'
-  
-main :: IO ()
-main = do
-  let msg = emptyInit
-  main' (mkMemory msg)
+  case msg of
+    (Init initMessage) -> main' (memory{memTrialInfo = initMessage})
+    (Telem telemData)  -> continue (updateTelem telemData memory)
+    _                  -> continue memory
+  where
+    continue mem = do
+      sendMessage (getCommand mem)
+      main' mem
+
+performTrial :: IO ()
+performTrial = do
+  (Init initMessage) <- getMessage
+  main' (mkMemory initMessage)
+
+main = forever performTrial
+
+forever p = p >> forever p
   
 getMessage :: IO Message
 getMessage = getMessage' ""
