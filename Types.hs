@@ -72,6 +72,8 @@ data Martian = Martian {
   }
   deriving (Show, Eq, Ord)
 
+type Point = (Double, Double)
+
 defaultVS = VS defaultVC 0 0 0 0
 
 -- Default values

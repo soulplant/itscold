@@ -16,7 +16,7 @@ main' memory = do
     _                  -> continue memory
   where
     continue mem = do
-      sendMessage (getCommand mem)
+      sendMessage (getCommand mem (0,0))
       main' mem
 
 performTrial :: IO ()
