@@ -14,7 +14,9 @@ mkMemory :: Initialization -> Memory
 mkMemory trialInfo = Memory { memTrialInfo = trialInfo, memObjects = empty, memVehicleState = defaultVS, memMartians = empty }
 
 updateMemory :: Message -> Memory -> Memory
-updateMemory msg mem = mem {memObjects = newObjects}
+updateMemory (Telem telem) mem = mem {memObjects = newObjects, memVehicleState = newVehicleState}
   where
-    newObjects = (fromList $ objects telem) `union` memObjects mem
-    telem = case msg of (Telem t) -> t
+    newObjects      = (fromList $ objects telem) `union` memObjects mem
+    newVehicleState = vehicleState telem
+updateMemory _ mem  = mem
+            
